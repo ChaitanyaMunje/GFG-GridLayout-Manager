@@ -1,62 +1,77 @@
 package com.gtappdevelopers.gfg;
 
 import android.content.Context;
+import android.content.Intent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
-import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.squareup.picasso.Picasso;
+
+import java.io.File;
 import java.util.ArrayList;
 
 public class RecyclerViewAdapter extends RecyclerView.Adapter<RecyclerViewAdapter.RecyclerViewHolder> {
+    //creating a variable for our context and array list.
+    private final Context context;
+    private final ArrayList<String> imagePathArrayList;
 
-    private ArrayList<RecyclerData> courseDataArrayList;
-    private Context mcontext;
-
-    public RecyclerViewAdapter(ArrayList<RecyclerData> recyclerDataArrayList, Context mcontext) {
-        this.courseDataArrayList = recyclerDataArrayList;
-        this.mcontext = mcontext;
+    //on below line we have created a constructor.
+    public RecyclerViewAdapter(Context context, ArrayList<String> imagePathArrayList) {
+        this.context = context;
+        this.imagePathArrayList = imagePathArrayList;
     }
 
     @NonNull
     @Override
     public RecyclerViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        // Inflate Layout
+        // Inflate Layout in this method whch we have created.
         View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.card_layout, parent, false);
         return new RecyclerViewHolder(view);
     }
 
     @Override
     public void onBindViewHolder(@NonNull RecyclerViewHolder holder, int position) {
-        // Set the data to textview and imageview.
-        RecyclerData recyclerData = courseDataArrayList.get(position);
-        holder.courseTV.setText(recyclerData.getTitle());
-        holder.courseIV.setImageResource(recyclerData.getImgid());
-
-
+        //on below line we are getting th file from the path which we have stored in our list.
+        File imgFile = new File(imagePathArrayList.get(position));
+        //on below line we are checking if tje file exists or not.
+        if (imgFile.exists()) {
+            //if the file exists then we are displaying that file in our image view using picasso library.
+            Picasso.get().load(imgFile).placeholder(R.drawable.ic_launcher_background).into(holder.imageIV);
+            //on below line we are adding click listner to our item of recycler view.
+            holder.itemView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    //inside on click listner we are creating a new intent
+                    Intent i = new Intent(context, ImageDetailActivity.class);
+                    //on below line we are passing the image path to our new activity.
+                    i.putExtra("imgPath", imagePathArrayList.get(position));
+                    //at last we are starting our activity.
+                    context.startActivity(i);
+                }
+            });
+        }
     }
 
     @Override
     public int getItemCount() {
         // this method returns the size of recyclerview
-        return courseDataArrayList.size();
+        return imagePathArrayList.size();
     }
 
     //View Holder Class to handle Recycler View.
-    public class RecyclerViewHolder extends RecyclerView.ViewHolder {
-
-        private TextView courseTV;
-        private ImageView courseIV;
+    public static class RecyclerViewHolder extends RecyclerView.ViewHolder {
+        //creating variables for our views.
+        private final ImageView imageIV;
 
         public RecyclerViewHolder(@NonNull View itemView) {
             super(itemView);
-            courseTV = itemView.findViewById(R.id.idTVCourse);
-            courseIV = itemView.findViewById(R.id.idIVcourseIV);
-
+            //initializing our views with their ids.
+            imageIV = itemView.findViewById(R.id.idIVImage);
         }
 
     }

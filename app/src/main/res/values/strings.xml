@@ -1,4 +1,5 @@
 <resources>
     <string name="app_name">GFG</string>
-    <string name="image">Image</string>
+    <string name="image">image</string>
+    <string name="api_key">AIzaSyCy2tuhXgWTFusXT1CjauagIxJEiQevZAg</string>
 </resources>

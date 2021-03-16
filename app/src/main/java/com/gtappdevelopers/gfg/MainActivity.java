@@ -1,182 +1,128 @@
 package com.gtappdevelopers.gfg;
 
-
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.content.ContextCompat;
-
-import android.content.Context;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.hardware.Sensor;
-import android.hardware.SensorEvent;
-import android.hardware.SensorEventListener;
-import android.hardware.SensorManager;
+import android.content.pm.PackageManager;
+import android.database.Cursor;
 import android.os.Bundle;
-import android.text.TextUtils;
-import android.util.Log;
-import android.view.View;
-import android.widget.Button;
-import android.widget.EditText;
-import android.widget.ImageView;
-import android.widget.TextView;
+import android.provider.MediaStore;
 import android.widget.Toast;
 
-import com.android.volley.Request;
-import com.android.volley.RequestQueue;
-import com.android.volley.Response;
-import com.android.volley.VolleyError;
-import com.android.volley.toolbox.JsonObjectRequest;
-import com.android.volley.toolbox.Volley;
-import com.google.firebase.database.DataSnapshot;
-import com.google.firebase.database.DatabaseError;
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.ValueEventListener;
-import com.mukesh.image_processing.ImageProcessor;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+import androidx.recyclerview.widget.GridLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
+import java.util.ArrayList;
+
+import static android.Manifest.permission.READ_EXTERNAL_STORAGE;
 
 public class MainActivity extends AppCompatActivity {
-
-    //creating a bitmap for our original image and all image filters.
-    Bitmap bitmap;
-    //creating a variable for image view.
-    ImageView oneIV, twoIV, threeIV, fourIV, fiveIV, sixIV, sevenIV, eightIV, nineIV, tenIV, originalIV;
-    Bitmap oneBitMap, twoBitMap, threeBitmap, fourBitMap, fiveBitMap, sixBitMap, sevenBitMap, eightBitMap, nineBitMap, tenBitMap;
-
+    //on below line we are creating variables for our array list, recycler view and adapter class.
+    private static final int PERMISSION_REQUEST_CODE = 200;
+    private ArrayList<String> imagePaths;
+    private RecyclerView imagesRV;
+    private RecyclerViewAdapter imageRVAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        //creating a variable for our image processor.
-        ImageProcessor processor = new ImageProcessor();
-        //initializing bitmap with our image resource.
-        bitmap = BitmapFactory.decodeResource(getResources(), R.drawable.image);
-        //initializing image views for our filters and original image on which we will be applying our filters.
-        oneIV = findViewById(R.id.idIVOne);
-        twoIV = findViewById(R.id.idIVTwo);
-        threeIV = findViewById(R.id.idIVThree);
-        fourIV = findViewById(R.id.idIVFour);
-        fiveIV = findViewById(R.id.idIVFive);
-        sixIV = findViewById(R.id.idIVSix);
-        sevenIV = findViewById(R.id.idIVSeven);
-        eightIV = findViewById(R.id.idIVEight);
-        nineIV = findViewById(R.id.idIVNine);
-        tenIV = findViewById(R.id.idIVTen);
-        originalIV = findViewById(R.id.idIVOriginalImage);
-
-        //below line is use to add tint effect to our original image bitmap and storing that in one bitmap.
-        oneBitMap = processor.tintImage(bitmap, 90);
-        //after storing it to one bitmap we are setting it to imageview.
-        oneIV.setImageBitmap(oneBitMap);
-        //below line is use to apply gaussian blur effect to our original image bitmap.
-        twoBitMap = processor.applyGaussianBlur(bitmap);
-        twoIV.setImageBitmap(twoBitMap);
-        //below line is use to add sepia toing effect to our original image bitmap.
-        threeBitmap = processor.createSepiaToningEffect(bitmap, 1, 2, 1, 5);
-        threeIV.setImageBitmap(threeBitmap);
-        //below line is use to apply saturation filter to our original image bitmap.
-        fourBitMap = processor.applySaturationFilter(bitmap, 3);
-        fourIV.setImageBitmap(fourBitMap);
-        //below line is use to apply snow effect to our original image bitmap.
-        fiveBitMap = processor.applySnowEffect(bitmap);
-        fiveIV.setImageBitmap(fiveBitMap);
-        //below line is use to add gray scale to our image view.
-        sixBitMap = processor.doGreyScale(bitmap);
-        sixIV.setImageBitmap(sixBitMap);
-        //below line is use to add engrave effect to our image view.
-        sevenBitMap = processor.engrave(bitmap);
-        sevenIV.setImageBitmap(sevenBitMap);
-        //below line is use to create a contrast effect to our image view.
-        eightBitMap = processor.createContrast(bitmap, 1.5);
-        eightIV.setImageBitmap(eightBitMap);
-        //below line is use to add shadow effect to our original bitmap.
-        nineBitMap = processor.createShadow(bitmap);
-        nineIV.setImageBitmap(nineBitMap);
-        //below line is use to add flea effect to our image view.
-        tenBitMap = processor.applyFleaEffect(bitmap);
-        tenIV.setImageBitmap(tenBitMap);
-        //below line is use to call on click listner for our all image filters.
-        initializeOnCLickListerns();
+        //we are calling a method to request the permissions to read external storage.
+        requestPermissions();
+        //creating a new array list and initializing our recycler view.
+        imagePaths = new ArrayList<>();
+        imagesRV = findViewById(R.id.idRVImages);
+        //calling a method to prepare our recycler view.
+        prepareRecyclerView();
     }
 
-    private void initializeOnCLickListerns() {
+    private boolean checkPermission() {
+        //in this method we are checking if the permissions are granted or not and returning the result.
+        int result = ContextCompat.checkSelfPermission(getApplicationContext(), READ_EXTERNAL_STORAGE);
+        return result == PackageManager.PERMISSION_GRANTED;
+    }
 
-        oneIV.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                //on clicking on each filter we are setting that filter to our original image.
-                originalIV.setImageBitmap(oneBitMap);
-            }
-        });
-
-
-        twoIV.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                originalIV.setImageBitmap(twoBitMap);
-            }
-        });
-
-        threeIV.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                originalIV.setImageBitmap(threeBitmap);
-            }
-        });
-
-        fourIV.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                originalIV.setImageBitmap(fourBitMap);
-            }
-        });
-
-        fiveIV.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                originalIV.setImageBitmap(fiveBitMap);
-            }
-        });
-
-        sixIV.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                originalIV.setImageBitmap(sixBitMap);
-            }
-        });
-
-        sevenIV.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                originalIV.setImageBitmap(sevenBitMap);
-            }
-        });
-
-        eightIV.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                originalIV.setImageBitmap(eightBitMap);
-            }
-        });
-
-        nineIV.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                originalIV.setImageBitmap(nineBitMap);
-            }
-        });
-
-        tenIV.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                originalIV.setImageBitmap(tenBitMap);
-            }
-        });
-
+    private void requestPermissions() {
+        if (checkPermission()) {
+            //if the permissions are already granted we are calling a method to get all images from our external storage.
+            Toast.makeText(this, "Permissions granted..", Toast.LENGTH_SHORT).show();
+            getImagePath();
+        } else {
+            //if the permissions are not granted we are calling a method to request permissions.
+            requestPermission();
+        }
 
     }
+
+
+    private void requestPermission() {
+        //on below line we are requesting the rea external storage permissions.
+        ActivityCompat.requestPermissions(this, new String[]{READ_EXTERNAL_STORAGE}, PERMISSION_REQUEST_CODE);
+    }
+
+    private void prepareRecyclerView() {
+        //in this method we are preparing our recycler view.
+        //on below line we are initializing our adapter class.
+        imageRVAdapter = new RecyclerViewAdapter(MainActivity.this, imagePaths);
+        //on below line we are creating a new grid layout manager.
+        GridLayoutManager manager = new GridLayoutManager(MainActivity.this, 4);
+        //on below line we are setting layout manager and adapter to our recycler view.
+        imagesRV.setLayoutManager(manager);
+        imagesRV.setAdapter(imageRVAdapter);
+    }
+
+    private void getImagePath() {
+        //in this method we are adding all our image paths in our arraylist which we have created.
+        //on below line we are checking if the device is having an sd card or not.
+        boolean isSDPresent = android.os.Environment.getExternalStorageState().equals(android.os.Environment.MEDIA_MOUNTED);
+
+        if (isSDPresent) {
+            //if the sd card is present we are creating a new list in which we are getting our images data with their ids.
+            final String[] columns = {MediaStore.Images.Media.DATA, MediaStore.Images.Media._ID};
+            //on below line we are creatng a new string to order our images by string.
+            final String orderBy = MediaStore.Images.Media._ID;
+            //this method will stores all the images from the gallery in Cursor
+            Cursor cursor = getContentResolver().query(
+                    MediaStore.Images.Media.EXTERNAL_CONTENT_URI, columns, null,
+                    null, orderBy);
+            //below line is to get total number of images
+            int count = cursor.getCount();
+            //on below line we are running a loop to add the image file path in our array list.
+            for (int i = 0; i < count; i++) {
+                //on below line we are moving our cursor position
+                cursor.moveToPosition(i);
+                //on below line we are getting image file path
+                int dataColumnIndex = cursor.getColumnIndex(MediaStore.Images.Media.DATA);
+                //after that we are getting the image file path and adding that path in our array list.
+                imagePaths.add(cursor.getString(dataColumnIndex));
+            }
+            imageRVAdapter.notifyDataSetChanged();
+            //after adding the data to our array list we are closing our cursor.
+            cursor.close();
+        }
+
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
+        //this method is called after permisions has been granted.
+        switch (requestCode) {
+            //we are checking the permision code.
+            case PERMISSION_REQUEST_CODE:
+                //in this case we are checking if the permisions are accepted or not.
+                if (grantResults.length > 0) {
+                    boolean storageAccepted = grantResults[0] == PackageManager.PERMISSION_GRANTED;
+                    if (storageAccepted) {
+                        //if the permisions are accepted we are displaying a toat mesage and calling a method to get image path.
+                        Toast.makeText(this, "Permissions Granted..", Toast.LENGTH_SHORT).show();
+                        getImagePath();
+                    } else {
+                        //if permissions are denined we are closing the app and displaying the toast message.
+                        Toast.makeText(this, "Permissions denined, Permissions are required to use the app..", Toast.LENGTH_SHORT).show();
+                    }
+                }
+                break;
+        }
+    }
+
 }
